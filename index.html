@@ -6,108 +6,146 @@
     <title>Historica: Mathematical Mayhem</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Special+Elite&family=Crimson+Pro:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --ink: #1a1008; --parchment: #f5edd6; --gold: #c9920a; }
+        :root { --ink: #1a1008; --parchment: #f5edd6; --gold: #c9920a; --blood: #8b0000; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Crimson Pro', serif; background: var(--parchment); color: var(--ink); min-height: 100vh; overflow: hidden; }
         
+        body { 
+            font-family: 'Crimson Pro', serif; 
+            background: var(--parchment); 
+            color: var(--ink); 
+            overflow: hidden;
+            background-image: radial-gradient(#d4c090 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Animations */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(201, 146, 10, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(201, 146, 10, 0); } 100% { box-shadow: 0 0 0 0 rgba(201, 146, 10, 0); } }
+
+        /* General UI */
+        .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; }
+        .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .panel { 
+            background: rgba(255, 255, 255, 0.95); 
+            border: 4px double var(--ink); 
+            padding: 2.5rem; 
+            box-shadow: 15px 15px 0 var(--ink); 
+            max-width: 500px; 
+            width: 90%; 
+            text-align: center;
+            position: relative;
+        }
+
+        .btn-primary { 
+            background: var(--ink); color: white; border: none; padding: 15px 25px; 
+            font-family: 'Special Elite'; cursor: pointer; transition: 0.3s; width: 100%; margin-top: 15px;
+        }
+        .btn-primary:hover { background: var(--gold); transform: scale(1.02); }
+
+        /* Game Elements */
         .chaotic-btn {
-            position: absolute; padding: 12px 20px; font-family: 'Special Elite', monospace;
-            background: #e8d9b5; border: 2px solid var(--ink); cursor: pointer; z-index: 20;
-            transition: opacity 0.3s, transform 0.2s;
+            position: absolute; padding: 15px; font-family: 'Special Elite';
+            background: #fff; border: 2px solid var(--ink); cursor: pointer;
+            z-index: 20; box-shadow: 4px 4px 0 var(--ink); transition: 0.2s;
         }
-        .vibrate { animation: shake 0.3s infinite; }
-        @keyframes shake { 0% {transform: translate(0,0)} 25% {transform: translate(2px,2px)} 50% {transform: translate(0,0)} 100% {transform: translate(0,0)} }
-        .hint-highlight { border: 5px solid var(--gold) !important; box-shadow: 0 0 25px var(--gold); background: white !important; z-index: 100 !important; }
-
-        #logic-gate { 
-            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 15px; border: 3px solid var(--ink); z-index: 300; width: 350px; text-align: center;
-            box-shadow: 8px 8px 0 var(--gold);
-        }
-
-        .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .screen.active { display: flex; }
-        .panel { background: rgba(245, 237, 214, 0.98); border: 2px solid #d4c090; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 500px; text-align: center; z-index: 10; }
-        .btn-primary { background: var(--ink); color: white; padding: 1rem; width: 100%; font-family: 'Special Elite'; cursor: pointer; border: none; margin-top: 10px; }
+        .chaotic-btn:hover { background: var(--gold); color: white; z-index: 100; }
         
-        .waiting-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); color: white; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-        .waiting-overlay.active { display: flex; }
+        #logic-gate {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 380px; background: white; border: 3px solid var(--blood); padding: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2); animation: float 3s infinite ease-in-out;
+            z-index: 1000;
+        }
 
-        .game-header { position: fixed; top: 0; width: 100%; background: var(--ink); color: white; padding: 10px; display: flex; justify-content: space-between; z-index: 100; }
-        .timer-bar { position: fixed; top: 44px; height: 8px; background: var(--gold); width: 100%; z-index: 100; transition: width 1s linear; }
-        .player-list { list-style: none; text-align: left; margin: 15px 0; width: 100%; }
-        .player-list li { display: flex; justify-content: space-between; padding: 10px; background: #fff; border: 1px solid #ddd; margin-bottom: 5px; }
+        /* The Ghost-Killer Overlay */
+        #wait-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92); 
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: center; z-index: 9999;
+        }
+        #wait-overlay.active { display: flex; }
+
+        .lb-item { 
+            display: flex; justify-content: space-between; padding: 12px; 
+            border-bottom: 1px solid #ddd; font-family: 'Special Elite';
+        }
     </style>
 </head>
 <body>
 
-<div id="wait-overlay" class="waiting-overlay">
-    <h1 style="font-family:'Playfair Display'; font-size: 3rem; color: var(--gold);">ERA RECORDED</h1>
-    <p style="font-family:'Special Elite'; margin-top: 20px;">Synchronizing the timeline...</p>
+<div id="wait-overlay">
+    <h1 style="color:var(--gold); font-size: 3.5rem; font-family: 'Playfair Display';">ERA RECORDED</h1>
+    <p style="color:white; font-family: 'Special Elite';">Synchronizing the timeline...</p>
 </div>
 
-<div id="home-screen" class="screen active">
+<div id="screen-home" class="screen active">
     <div class="panel">
-        <h1 style="font-family:'Playfair Display'; font-size: 3rem;">HISTORICA</h1>
-        <button class="btn-primary" onclick="showScreen('host-setup-screen')">HOST ERA</button>
-        <button class="btn-primary" onclick="showScreen('join-screen')" style="background:#444">JOIN ERA</button>
+        <h1 style="font-family:'Playfair Display'; font-size: 3.5rem; margin-bottom: 1rem;">HISTORICA</h1>
+        <button class="btn-primary" onclick="nav('setup')">CREATE ERA</button>
+        <button class="btn-primary" onclick="nav('join')" style="background:#444">JOIN ERA</button>
     </div>
 </div>
 
-<div id="host-setup-screen" class="screen">
+<div id="screen-setup" class="screen">
     <div class="panel">
-        <h2>Host Setup</h2>
-        <input type="text" id="host-name-input" placeholder="Name" style="width:100%; padding:12px; margin: 10px 0;">
-        <label>Seconds per Era</label>
-        <input type="number" id="time-limit-input" value="25" style="width:100%; padding:12px; margin-bottom: 20px;">
-        <button class="btn-primary" onclick="createRoom()">GENERATE CHAMBER</button>
+        <h2>ERA CONFIG</h2>
+        <input type="text" id="host-name" placeholder="Historian Name" style="width:100%; padding:12px; margin: 10px 0;">
+        <label>Era Duration (Sec)</label>
+        <input type="number" id="time-limit" value="30" style="width:100%; padding:12px;">
+        <button class="btn-primary" onclick="hostGame()">IGNITE ERA</button>
     </div>
 </div>
 
-<div id="join-screen" class="screen">
+<div id="screen-join" class="screen">
     <div class="panel">
-        <h2>Join Era</h2>
-        <input type="text" id="join-name-input" placeholder="Name" style="width:100%; padding:12px; margin: 5px 0;">
-        <input type="text" id="join-code-input" placeholder="Room Code" style="width:100%; padding:12px; margin-bottom: 10px; text-transform:uppercase;">
-        <button class="btn-primary" onclick="joinRoom()">ENTER</button>
+        <h2>JOIN TIMELINE</h2>
+        <input type="text" id="player-name" placeholder="Your Name" style="width:100%; padding:12px; margin: 5px 0;">
+        <input type="text" id="room-code" placeholder="Era Code" style="width:100%; padding:12px; text-transform:uppercase;">
+        <button class="btn-primary" onclick="joinGame()">ENTER</button>
     </div>
 </div>
 
-<div id="lobby-screen" class="screen">
+<div id="screen-lobby" class="screen">
     <div class="panel">
-        <p>CHAMBER CODE</p>
-        <h1 id="display-room-code" style="color:var(--gold); font-size:4rem;">----</h1>
-        <ul id="player-list" class="player-list"></ul>
-        <button id="start-btn" class="btn-primary" style="display:none" onclick="startGame()">BEGIN GAME</button>
+        <p>ACCESS CODE</p>
+        <h1 id="view-code" style="color:var(--gold); font-size:4rem; letter-spacing:10px;">----</h1>
+        <div id="lobby-players" style="margin: 20px 0; max-height: 200px; overflow-y: auto;"></div>
+        <button id="host-start-btn" class="btn-primary" style="display:none" onclick="triggerStart()">BEGIN VOYAGE</button>
     </div>
 </div>
 
-<div id="game-screen" class="screen">
-    <div class="game-header">
-        <div id="q-count">Q 1/20</div>
-        <div id="score-display">0 pts</div>
+<div id="screen-game" class="screen">
+    <div style="position:fixed; top:0; width:100%; background:var(--ink); color:white; padding:15px; display:flex; justify-content:space-between; z-index:1000;">
+        <span id="game-info">ERA 1/20</span>
+        <span id="player-score" style="color:var(--gold)">0 pts</span>
     </div>
-    <div id="timer-bar" class="timer-bar"></div>
-    <div class="panel" style="margin-top:-120px;">
-        <p id="q-text" style="font-size:1.2rem; font-weight:bold;"></p>
+    <div id="progress-bar" style="position:fixed; top:54px; height:6px; background:var(--gold); width:100%; transition:width 1s linear;"></div>
+    
+    <div class="panel" style="margin-top:-60px;">
+        <h3 id="question-text" style="line-height:1.4;"></h3>
     </div>
-    <div id="chaotic-area"></div>
+    
+    <div id="chaos-container" style="width:100%; height:100%; position:absolute; top:0; left:0;"></div>
+    
     <div id="logic-gate">
-        <p style="font-size:0.7rem;">Multiply to unlock: <span id="math-q" style="font-weight:bold; color:red;"></span></p>
-        <input type="number" id="math-input" placeholder="?" style="width:70px;" oninput="checkMath(this.value)">
-        <div style="border-top:1px solid #eee; margin-top:5px; padding-top:5px;">
-            <p style="font-size:0.6rem;">Hint Word: "<span id="hint-word" style="color:blue;"></span>"</p>
-            <input type="text" id="hint-input" placeholder="Type for hint..." style="width:100%;" oninput="checkHint(this.value)">
+        <p style="font-size:0.8rem; color:var(--blood); font-weight:bold;">DECODE TO UNLOCK:</p>
+        <div style="display:flex; gap:10px; margin:10px 0; justify-content:center;">
+            <span id="math-display" style="font-family:'Special Elite'; font-size:1.2rem;"></span>
+            <input type="number" id="math-input" style="width:70px; font-size:1.1rem;" oninput="solveMath(this.value)">
         </div>
+        <input type="text" id="hint-input" placeholder="Type Hint Keyword..." style="width:100%; padding:8px;" oninput="solveHint(this.value)">
+        <p style="font-size:0.6rem; margin-top:5px;">Long Word Hint: <span id="hint-word" style="color:blue; font-weight:bold;"></span></p>
     </div>
 </div>
 
-<div id="leaderboard-screen" class="screen">
+<div id="screen-leaderboard" class="screen">
     <div class="panel">
-        <h2 style="font-family:'Playfair Display'">ERA STANDINGS</h2>
-        <ul id="lb-list" class="player-list"></ul>
-        <button id="next-btn" class="btn-primary" style="display:none" onclick="nextQuestion()">NEXT ERA</button>
-        <p id="wait-msg" style="display:none; font-style:italic; margin-top:10px;">Waiting for Host...</p>
+        <h2 style="font-family:'Playfair Display'; margin-bottom:1rem;">STANDINGS</h2>
+        <div id="leaderboard-data" style="width:100%"></div>
+        <button id="host-next-btn" class="btn-primary" style="display:none" onclick="triggerNext()">NEXT ERA</button>
+        <p id="wait-label" style="display:none; margin-top:15px; font-style:italic;">Waiting for Historian...</p>
     </div>
 </div>
 
@@ -115,7 +153,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyDW-UE-a4TMRcfz3E13mLOgBtx6bywwCtE",
         authDomain: "history-780ec.firebaseapp.com",
@@ -140,181 +177,214 @@
         {q:"The 1884 Berlin Conference partitioned which continent?", a:["Africa","Asia","South America","Oceania"], c:0},
         {q:"What 1894 affair divided France over antisemitism?", a:["Dreyfus Affair","Napoleonic Trial","Zola Case","Bastille Riot"], c:0},
         {q:"The Boxer Rebellion (1899) took place where?", a:["China","India","Japan","Philippines"], c:0},
-        {q:"Who discovered Radium in 1898?", a:["Marie Curie","Albert Einstein","Isaac Newton","Max Planck"], c:0},
-        {q:"Which ship sank in 1912 on its maiden voyage?", a:["Titanic","Lusitania","Britannic","Olympic"], c:0},
-        {q:"The Wright Brothers flew in what year?", a:["1903","1899","1910","1890"], c:0},
-        {q:"The Spanish-American War occurred in which year?", a:["1898","1880","1905","1892"], c:0},
-        {q:"Who wrote 'The Communist Manifesto' (1848)?", a:["Karl Marx","Adam Smith","John Locke","Napoleon"], c:0},
-        {q:"What year was the transcontinental railroad finished (US)?", a:["1869","1850","1885","1900"], c:0},
-        {q:"Which Queen ruled Britain from 1837-1901?", a:["Victoria","Elizabeth I","Mary","Anne"], c:0},
-        {q:"What oil company did Rockefeller found in 1870?", a:["Standard Oil","Shell","BP","Exxon"], c:0},
-        {q:"The Russo-Japanese War ended in which year?", a:["1905","1914","1895","1910"], c:0},
-        {q:"Who was the 'Iron Chancellor' of Germany?", a:["Otto von Bismarck","Wilhelm II","Metternich","Hitler"], c:0},
-        {q:"Which artistic movement began in France in the 1870s?", a:["Impressionism","Baroque","Cubism","Surrealism"], c:0}
+        {q:"Who discovered Radium in 1898?", a:["Marie Curie","Albert Einstein","Isaac Newton","Max Planck"], c:0}
     ];
 
-    const LONG_WORDS = ["Antidisestablishmentarianism", "Floccinaucinihilipilification", "Incomprehensibilities", "Pseudopsychotherapeutic"];
+    const HINTS = ["ANTIDISESTABLISHMENTARIANISM", "INCOMPREHENSIBILITIES", "FLOCCINAUCINIHILIPILIFICATION", "HONORIFICABILITUDINITATIBUS"];
 
-    let state = { isHost: false, myId: 'p'+Math.random().toString(36).slice(2, 7), roomCode: '', currentQ: -1, score: 0, timeLimit: 25, canAnswer: false, mathAns: 0, currentHint: "" };
-    let timerRef;
-
-    window.showScreen = (id) => { 
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
-        document.getElementById(id).classList.add('active'); 
+    let g = {
+        isHost: false,
+        code: '',
+        id: 'p' + Math.random().toString(36).substr(2, 5),
+        currentIdx: -1,
+        score: 0,
+        unlocked: false,
+        timer: null
     };
 
-    window.createRoom = async () => {
-        state.timeLimit = parseInt(document.getElementById('time-limit-input').value) || 25;
-        state.roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-        state.isHost = true;
-        await set(ref(db, 'rooms/' + state.roomCode), { 
-            status: 'lobby', 
-            currentQ: -1, 
-            questions: BANK.sort(() => Math.random() - 0.5), 
-            timeLimit: state.timeLimit,
-            players: { [state.myId]: { name: document.getElementById('host-name-input').value || 'Host', score: 0, answered: false } } 
+    window.nav = (id) => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+        document.getElementById('wait-overlay').classList.remove('active'); // Safety clear
+    };
+
+    window.hostGame = async () => {
+        g.isHost = true;
+        g.code = Math.random().toString(36).substr(2, 4).toUpperCase();
+        const duration = parseInt(document.getElementById('time-limit').value) || 30;
+        
+        await set(ref(db, 'rooms/' + g.code), {
+            status: 'lobby',
+            duration: duration,
+            currentIdx: -1,
+            questions: BANK.sort(() => Math.random() - 0.5),
+            players: { [g.id]: { name: document.getElementById('host-name').value || 'Host', score: 0, done: false } }
         });
-        setupSync();
-        document.getElementById('display-room-code').textContent = state.roomCode;
-        document.getElementById('start-btn').style.display = 'block';
-        showScreen('lobby-screen');
+        
+        startListening();
+        document.getElementById('view-code').innerText = g.code;
+        document.getElementById('host-start-btn').style.display = 'block';
+        nav('lobby');
     };
 
-    window.joinRoom = async () => {
-        const code = document.getElementById('join-code-input').value.toUpperCase();
+    window.joinGame = async () => {
+        const code = document.getElementById('room-code').value.toUpperCase();
         const snap = await get(ref(db, `rooms/${code}`));
-        if (snap.exists()) {
-            state.roomCode = code; state.timeLimit = snap.val().timeLimit;
-            await update(ref(db, `rooms/${code}/players/${state.myId}`), { name: document.getElementById('join-name-input').value || 'Player', score: 0, answered: false });
-            setupSync();
-            document.getElementById('display-room-code').textContent = code;
-            showScreen('lobby-screen');
-        } else alert("Era not found!");
+        if (!snap.exists()) return alert("Era not found!");
+        
+        g.code = code;
+        await update(ref(db, `rooms/${code}/players/${g.id}`), {
+            name: document.getElementById('player-name').value || 'Traveler',
+            score: 0,
+            done: false
+        });
+        
+        startListening();
+        document.getElementById('view-code').innerText = code;
+        nav('lobby');
     };
 
-    function setupSync() {
-        onValue(ref(db, 'rooms/' + state.roomCode), (snapshot) => {
-            const room = snapshot.val(); if (!room) return;
-            const sorted = Object.values(room.players).sort((a, b) => b.score - a.score);
-            const html = sorted.map(p => `<li><span>${p.name}</span><b>${p.score}</b></li>`).join('');
-            document.getElementById('player-list').innerHTML = html;
-            document.getElementById('lb-list').innerHTML = html;
+    function startListening() {
+        onValue(ref(db, 'rooms/' + g.code), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
 
-            // OVERLAY KILLER: Explicitly hide the overlay if status is leaderboard
-            if (room.status === 'leaderboard') {
+            const players = Object.values(data.players).sort((a,b) => b.score - a.score);
+            const listHtml = players.map(p => `<div class="lb-item"><span>${p.name}</span><b>${p.score}</b></div>`).join('');
+            document.getElementById('lobby-players').innerHTML = listHtml;
+            document.getElementById('leaderboard-data').innerHTML = listHtml;
+
+            // STATE LOGIC
+            if (data.status === 'leaderboard') {
+                // THE CRITICAL FIX: Explicitly kill the overlay on state change
                 document.getElementById('wait-overlay').classList.remove('active');
-                clearInterval(timerRef);
-                showScreen('leaderboard-screen');
-                if (state.isHost) {
-                    document.getElementById('next-btn').style.display = 'block';
-                    document.getElementById('wait-msg').style.display = 'none';
+                clearInterval(g.timer);
+                nav('leaderboard');
+                if (g.isHost) {
+                    document.getElementById('host-next-btn').style.display = 'block';
+                    document.getElementById('wait-label').style.display = 'none';
                 } else {
-                    document.getElementById('wait-msg').style.display = 'block';
+                    document.getElementById('wait-label').style.display = 'block';
                 }
-            } else if (room.status === 'question' && state.currentQ !== room.currentQ) {
-                state.currentQ = room.currentQ;
-                state.questions = room.questions;
+            } 
+            else if (data.status === 'game' && data.currentIdx !== g.currentIdx) {
+                g.currentIdx = data.currentIdx;
+                g.questions = data.questions;
+                g.duration = data.duration;
                 document.getElementById('wait-overlay').classList.remove('active');
-                renderQuestion();
+                renderGame();
             }
 
-            if (state.isHost && room.status === 'question') {
-                if (Object.values(room.players).every(p => p.answered)) {
-                    update(ref(db, `rooms/${state.roomCode}`), { status: 'leaderboard' });
+            if (g.isHost && data.status === 'game') {
+                if (Object.values(data.players).every(p => p.done)) {
+                    update(ref(db, 'rooms/' + g.code), { status: 'leaderboard' });
                 }
             }
         });
     }
 
-    window.startGame = () => update(ref(db, `rooms/${state.roomCode}`), { status: 'question', currentQ: 0 });
+    window.triggerStart = () => update(ref(db, 'rooms/' + g.code), { status: 'game', currentIdx: 0 });
 
-    function renderQuestion() {
-        const qData = state.questions[state.currentQ];
-        document.getElementById('q-count').innerText = `Q ${state.currentQ + 1}/20`;
-        document.getElementById('q-text').innerText = qData.q;
+    function renderGame() {
+        const q = g.questions[g.currentIdx];
+        g.unlocked = false;
         
-        state.canAnswer = false;
-        const n1 = Math.floor(Math.random()*8)+2; const n2 = Math.floor(Math.random()*8)+2;
-        state.mathAns = n1 * n2;
-        document.getElementById('math-q').innerText = `${n1} x ${n2} =`;
-        document.getElementById('math-input').value = "";
+        document.getElementById('game-info').innerText = `ERA ${g.currentIdx + 1}/10`;
+        document.getElementById('question-text').innerText = q.q;
         
-        state.currentHint = LONG_WORDS[Math.floor(Math.random()*LONG_WORDS.length)];
-        document.getElementById('hint-word').innerText = state.currentHint;
-        document.getElementById('hint-input').value = "";
+        // Math Setup
+        const n1 = Math.floor(Math.random()*7)+3;
+        const n2 = Math.floor(Math.random()*7)+3;
+        g.mathAns = n1 * n2;
+        document.getElementById('math-display').innerText = `${n1} x ${n2} =`;
+        document.getElementById('math-input').value = '';
+        
+        // Hint Setup
+        g.hintWord = HINTS[Math.floor(Math.random()*HINTS.length)];
+        document.getElementById('hint-word').innerText = g.hintWord;
+        document.getElementById('hint-input').value = '';
 
-        const area = document.getElementById('chaotic-area');
-        area.innerHTML = '';
-        const choices = qData.a.map((t, i) => ({ t, isC: i === qData.c })).sort(() => Math.random() - 0.5);
+        // Answer Buttons
+        const container = document.getElementById('chaos-container');
+        container.innerHTML = '';
+        const choices = q.a.map((t, i) => ({ t, correct: i === q.c })).sort(() => Math.random() - 0.5);
 
-        choices.forEach(c => {
+        choices.forEach(choice => {
             const btn = document.createElement('button');
             btn.className = 'chaotic-btn';
-            btn.innerText = c.t;
-            btn.style.left = (Math.random() * 60 + 10) + '%';
-            btn.style.top = (Math.random() * 50 + 20) + '%';
-            btn.style.opacity = "0.05"; 
+            btn.innerText = choice.t;
+            btn.style.left = (Math.random()*65 + 10) + '%';
+            btn.style.top = (Math.random()*50 + 20) + '%';
+            btn.style.opacity = '0.05';
             btn.disabled = true;
-
-            const tilt = (Math.random() - 0.5) * 160; 
-            btn.style.transform = `rotate(${tilt}deg)`;
-            if(Math.random() > 0.7) btn.classList.add('vibrate');
-
+            btn.style.transform = `rotate(${(Math.random()-0.5)*120}deg)`;
+            
             btn.onclick = () => {
-                if (!state.canAnswer) return;
-                if (c.isC) state.score += 100;
-                update(ref(db, `rooms/${state.roomCode}/players/${state.myId}`), { answered: true, score: state.score });
-                document.getElementById('score-display').innerText = state.score + " pts";
-                document.getElementById('wait-overlay').classList.add('active');
+                if (choice.correct) g.score += 100;
+                document.getElementById('player-score').innerText = g.score + " pts";
+                submitAnswer();
             };
-            area.appendChild(btn);
+            container.appendChild(btn);
         });
 
-        startTimer();
-        showScreen('game-screen');
+        startClock();
+        nav('game');
     }
 
-    window.checkMath = (val) => {
-        if (parseInt(val) === state.mathAns) {
-            state.canAnswer = true;
-            document.querySelectorAll('.chaotic-btn').forEach(b => { b.disabled = false; b.style.opacity = "1"; });
-        }
-    };
-
-    window.checkHint = (val) => {
-        if (val.toLowerCase() === state.currentHint.toLowerCase()) {
-            const correctText = state.questions[state.currentQ].a[state.questions[state.currentQ].c];
+    window.solveMath = (val) => {
+        if (parseInt(val) === g.mathAns) {
+            g.unlocked = true;
             document.querySelectorAll('.chaotic-btn').forEach(b => {
-                if (b.innerText === correctText) b.classList.add('hint-highlight');
+                b.disabled = false;
+                b.style.opacity = '1';
+                b.style.animation = 'pulse-gold 2s infinite';
             });
         }
     };
 
-    function startTimer() {
-        let left = state.timeLimit;
-        const bar = document.getElementById('timer-bar');
-        clearInterval(timerRef);
-        timerRef = setInterval(() => {
-            left--;
-            bar.style.width = (left / state.timeLimit * 100) + "%";
-            if (left <= 0) {
-                clearInterval(timerRef);
-                state.canAnswer = false;
-                if (!document.getElementById('leaderboard-screen').classList.contains('active')) {
-                   document.getElementById('wait-overlay').classList.add('active');
+    window.solveHint = (val) => {
+        if (val.toUpperCase() === g.hintWord) {
+            const correctText = g.questions[g.currentIdx].a[g.questions[g.currentIdx].c];
+            document.querySelectorAll('.chaotic-btn').forEach(b => {
+                if (b.innerText === correctText) {
+                    b.style.border = "6px solid var(--gold)";
+                    b.style.background = "#fff";
+                    b.style.zIndex = "100";
                 }
-                if (state.isHost) update(ref(db, `rooms/${state.roomCode}`), { status: 'leaderboard' });
+            });
+        }
+    };
+
+    function startClock() {
+        let remaining = g.duration;
+        const bar = document.getElementById('progress-bar');
+        clearInterval(g.timer);
+        g.timer = setInterval(() => {
+            remaining--;
+            bar.style.width = (remaining / g.duration * 100) + '%';
+            if (remaining <= 0) {
+                clearInterval(g.timer);
+                submitAnswer();
             }
         }, 1000);
     }
 
-    window.nextQuestion = async () => {
-        const next = state.currentQ + 1;
-        if (next >= 20) return alert("END OF HISTORY");
-        const pSnap = await get(ref(db, `rooms/${state.roomCode}/players`));
-        const players = pSnap.val();
-        for (let id in players) players[id].answered = false;
-        update(ref(db, `rooms/${state.roomCode}`), { status: 'question', currentQ: next, players });
+    async function submitAnswer() {
+        // Only show overlay if we aren't on leaderboard yet
+        if (document.getElementById('screen-game').classList.contains('active')) {
+            document.getElementById('wait-overlay').classList.add('active');
+        }
+        await update(ref(db, `rooms/${g.code}/players/${g.id}`), { done: true, score: g.score });
+        if (g.isHost) {
+            setTimeout(() => {
+                update(ref(db, 'rooms/' + g.code), { status: 'leaderboard' });
+            }, 600);
+        }
+    }
+
+    window.triggerNext = async () => {
+        const next = g.currentIdx + 1;
+        if (next >= 10) return alert("ERA OF DISCOVERY COMPLETE");
+        
+        const snap = await get(ref(db, `rooms/${g.code}/players`));
+        const players = snap.val();
+        for (let id in players) players[id].done = false;
+        
+        update(ref(db, 'rooms/' + g.code), {
+            status: 'game',
+            currentIdx: next,
+            players: players
+        });
     };
 </script>
 </body>
